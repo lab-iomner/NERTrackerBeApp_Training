@@ -1,0 +1,106 @@
+﻿<div class="px-2 space-y-1">
+    <div class="py-2 flex space-x-1">
+         <RadzenTextBox class="w-full max-w-lg"  Placeholder="Rechercher..." Change=@(args => OnSearch(args)) />
+        <div class="flex space-x-1">
+            <RadzenButton  Click="_ => EditItem()" Text="Nouveau" ButtonStyle="ButtonStyle.Secondary" />
+            <RadzenButton Click="_ => LoadData(new LoadDataArgs(){Skip = 0, Top = 10})" Text="Rafraichir" ButtonStyle="ButtonStyle.Light" />
+        </div>
+    </div>
+    @if (_isBusy)
+    {
+       <RadzenProgressBar class="h-1" Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    <div>
+        <RadzenDataGrid Count="@_count" LoadData="@LoadData" TItem=@BenefTracker  Data=@_items AllowFiltering="true" 
+        AllowColumnResize="true" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" 
+        PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true" ColumnWidth="300px">
+            <Columns>
+                <RadzenDataGridColumn TItem="BenefTracker" Property="Grant.Region.Name" Filterable=@false Title="Region"  Width="70px" TextAlign="TextAlign.Center"  />
+                <RadzenDataGridColumn TItem="BenefTracker" Property="GrantId" Filterable=@true Title="Grant Number"  Width="70px" TextAlign="TextAlign.Center"  />
+            </Columns>
+        </RadzenDataGrid>
+        
+    </div>
+</div>
+
+<RadzenMediaQuery Query=@("(max-width: 768px)") Change=@(e => _isSmall = e)/>
+@code {
+    [Inject] NerTrackerDbContext NerTrackerDbContext { get; set; } = null!;
+
+    [Inject] DialogService DialogService { get; set; } = null!;
+
+    [Inject] NotificationService NotificationService { get; set; } = null!;
+
+    [Parameter] public EventCallback<BenefTracker> OnItemEdit { get; set; }
+
+    [Parameter] public bool Refresh { get; set; } = false;
+
+    protected async override Task OnParametersSetAsync()
+    {
+        if (Refresh)
+        {
+            await LoadData(new LoadDataArgs() { Skip = 0, Top = 10 });
+            StateHasChanged();
+        }
+    }
+
+    int _count = 0;
+    bool _isBusy = true;
+    bool _isSmall = false;
+    string _searchQuery = string.Empty;
+    IEnumerable<BenefTracker> _items = new List<BenefTracker>();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadData(new LoadDataArgs() { Skip = 0, Top = 10 });
+            StateHasChanged();
+        }
+    }
+
+    async Task OnSearch(string value)
+    {
+        _searchQuery = value;
+        await LoadData(new LoadDataArgs() { Skip = 0, Top = 10 });
+    }
+
+    async Task LoadData(LoadDataArgs args)
+    {
+        _isBusy = true;
+        var query = NerTrackerDbContext.BenefTrackers
+        .Include(x => x.Grant).ThenInclude(x => x.Region);
+        if (string.IsNullOrEmpty(_searchQuery))
+        {
+            var queryWithSearch = query.Where(x => x.Grant!.Region!.Name.Contains(_searchQuery));
+            _items = await queryWithSearch
+            .Skip(args.Skip.GetValueOrDefault()).Take(args.Top.GetValueOrDefault())
+            .ToListAsync();
+            _count = await queryWithSearch.CountAsync();
+        }
+        else
+        {
+            _items = await query
+             .Skip(args.Skip.GetValueOrDefault()).Take(args.Top.GetValueOrDefault())
+             .ToListAsync();
+             _count = await query.CountAsync();
+        }
+        _isBusy = false;
+    }
+
+    async Task EditItem(BenefTracker? item = null)
+    {
+        if (_isSmall)
+        {
+            var param = item is null ? new Dictionary<string, object?>()
+              : new Dictionary<string, object?>() { { "Model", item } };
+            var title = item is null ? "Ajouter un bénéficiaire" : $"Modifier {item.Id}";
+            var result = await DialogService.OpenAsync<BaseEdit>(title, param);
+            if (result is bool canRefresh && canRefresh == true)
+                await LoadData(new LoadDataArgs() { Skip = 0, Top = 10 });
+        }
+        else
+            await OnItemEdit.InvokeAsync(item);
+    }
+
+}

@@ -1,0 +1,90 @@
+﻿<EditForm class="w-full space-y-2 py-2 px-2" OnValidSubmit=@Save Model=@Model>
+        <DataAnnotationsValidator  />
+        <ValidationSummary/>
+        <RadzenTextBox class=" w-full" @bind-Value=@Model.GrantId Placeholder="Grant Number" />
+
+        <div class="py-2">
+            <RadzenButton class="m-1 px-2" type="submit" IsBusy=@_isBusy Icon="save" Text="Enregistrer" ButtonStyle="ButtonStyle.Secondary" />
+         @if (IsNew())
+        {
+            <RadzenButton class="m-1 px-2" Click=@(_ => Cancel(false)) Icon="close" Text="Annuler" ButtonStyle="ButtonStyle.Light" />
+        }
+        else
+        {
+            <RadzenButton class="m-1 px-2" Click=@ConfirmDelete Icon="delete" Text="Supprimer" ButtonStyle="ButtonStyle.Danger" />
+        }
+        </div>
+</EditForm>
+<RadzenMediaQuery Query=@("(max-width: 768px)") Change=@(e => _isSmall = e)/>
+@code {
+    IEnumerable<string> _servcieTypes = new List<string>();
+    [Parameter] public BenefTracker Model { get; set; } = new BenefTracker();
+
+    [Inject] public NerTrackerDbContext NerTrackerDbContext { get; set; } = null!;
+    [Inject] NotificationService NotificationService { get; set; } = null!;
+    [Inject] DialogService DialogService { get; set; } = null!;
+
+    [Parameter] public EventCallback<bool> CanRefresh { get; set; }
+
+    bool _isSmall = false;
+    bool _isBusy = false;
+    bool IsNew() => Model.Id <= 0;
+
+    void Cancel(bool canRefresh = false) => DialogService.Close(canRefresh);
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            //_servcieTypes = await NerTrackerDbContext
+            //    .ServiceTypes.Select(x => x.Name)
+            //    .ToListAsync();
+            StateHasChanged();
+        }
+    }
+
+    async Task Save()
+    {
+        _isBusy = true;
+        await NerTrackerDbContext.AddAsync(Model);
+        var result = await NerTrackerDbContext.SaveChangesAsync();
+        if (result > 0)
+        {
+            if (!_isSmall)
+            {
+                await CanRefresh.InvokeAsync(true);
+                Model = new BenefTracker();
+            }
+            else
+                Cancel(true);
+        }
+        _isBusy = false;
+    }
+
+    async Task ConfirmDelete()
+    {
+        var result = await DialogService
+        .Confirm("Etes-vous sûre vouloir supprimé? Ceci peut affecter plusieurs courses.", $"Supprimer {Model.Id}", new ConfirmOptions() { OkButtonText = "Oui", CancelButtonText = "Non" });
+        if (result.Value == true)
+            await Delete();
+    }
+
+    async Task Delete()
+    {
+        if (IsNew())
+            return;
+        _isBusy = true;
+
+        NerTrackerDbContext.Remove(Model);
+        var isDeleted = await NerTrackerDbContext.SaveChangesAsync();
+        if (!_isSmall && isDeleted > 0)
+        {
+            await CanRefresh.InvokeAsync(isDeleted > 0);
+            Model = new BenefTracker();
+        }
+        else
+            Cancel(isDeleted > 0);
+        _isBusy = false;
+    }
+
+}
