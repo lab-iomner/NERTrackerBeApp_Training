@@ -1,6 +1,7 @@
-﻿<div class="px-2 space-y-1">
+﻿@using Polly
+<div class="px-2 space-y-1">
     <div class="py-2 flex space-x-1">
-         <RadzenTextBox class="w-full max-w-lg"  Placeholder="Rechercher..." Change=@(args => OnSearch(args)) />
+         <RadzenTextBox class="w-full"  Placeholder="Rechercher..." Change=@(args => OnSearch(args)) />
         <div class="flex space-x-1">
             <RadzenButton  Click="_ => EditItem()" Text="Nouveau" ButtonStyle="ButtonStyle.Secondary" />
             <RadzenButton Click="_ => LoadData(new LoadDataArgs(){Skip = 0, Top = 10})" Text="Rafraichir" ButtonStyle="ButtonStyle.Light" />
@@ -15,8 +16,12 @@
         AllowColumnResize="true" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" 
         PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true" ColumnWidth="300px">
             <Columns>
-                <RadzenDataGridColumn TItem="BenefTracker" Property="Grant.Region.Name" Filterable=@false Title="Region"  Width="70px" TextAlign="TextAlign.Center"  />
-                <RadzenDataGridColumn TItem="BenefTracker" Property="GrantId" Filterable=@true Title="Grant Number"  Width="70px" TextAlign="TextAlign.Center"  />
+                <RadzenDataGridColumn TItem="BenefTracker" Property="Grant.Region.Name" Filterable=@false Title="Region" TextAlign="TextAlign.Center"  />
+                <RadzenDataGridColumn TItem="BenefTracker" Property="GrantId" Filterable=@true Title="Grant Number" TextAlign="TextAlign.Center"  />
+                <RadzenDataGridColumn TItem="BenefTracker" Property="Grant.ServiceType.Name" Filterable=@true Title="Service" TextAlign="TextAlign.Center"  />
+                <RadzenDataGridColumn TItem="BenefTracker" Property="Grant.Objective.Description" Filterable=@true Title="Objectif" TextAlign="TextAlign.Center"  />
+                <RadzenDataGridColumn TItem="BenefTracker" Property="DHomme18_349" Filterable=@true Title="Benef H" TextAlign="TextAlign.Center"  />
+                <RadzenDataGridColumn TItem="BenefTracker" Property="DFemme18_349" Filterable=@true Title="Benef F" TextAlign="TextAlign.Center"  />
             </Columns>
         </RadzenDataGrid>
         
@@ -39,7 +44,7 @@
     {
         if (Refresh)
         {
-            await LoadData(new LoadDataArgs() { Skip = 0, Top = 10 });
+            //await LoadData(new LoadDataArgs() { Skip = 0, Top = 10 });
             StateHasChanged();
         }
     }
@@ -54,7 +59,9 @@
     {
         if (firstRender)
         {
-            await LoadData(new LoadDataArgs() { Skip = 0, Top = 10 });
+            await Policy.Handle<Exception>()
+                    .WaitAndRetryAsync(5, n => TimeSpan.FromMilliseconds(100 * n), (ex, attempt) => _isBusy = false)
+                    .ExecuteAsync(() => LoadData(new LoadDataArgs() { Skip = 0, Top = 10 }));
             StateHasChanged();
         }
     }
@@ -69,8 +76,11 @@
     {
         _isBusy = true;
         var query = NerTrackerDbContext.BenefTrackers
-        .Include(x => x.Grant).ThenInclude(x => x.Region);
-        if (string.IsNullOrEmpty(_searchQuery))
+        .Include(x => x.Grant).ThenInclude(x => x!.Region)
+        .Include(x => x.Grant).ThenInclude(x => x!.Objective)
+        .Include(x => x.Grant).ThenInclude(x => x!.ServiceType);
+
+        if (!string.IsNullOrEmpty(_searchQuery))
         {
             var queryWithSearch = query.Where(x => x.Grant!.Region!.Name.Contains(_searchQuery));
             _items = await queryWithSearch

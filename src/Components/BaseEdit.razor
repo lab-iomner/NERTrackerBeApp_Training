@@ -1,8 +1,13 @@
-﻿<EditForm class="w-full space-y-2 py-2 px-2" OnValidSubmit=@Save Model=@Model>
+﻿@using Polly
+<EditForm class="w-full space-y-2 py-2 px-2"  OnValidSubmit=@Save Model=@_model>
         <DataAnnotationsValidator  />
         <ValidationSummary/>
-        <RadzenTextBox class=" w-full" @bind-Value=@Model.GrantId Placeholder="Grant Number" />
-
+         <RadzenTextBox class=" w-full" @bind-Value=@_model.Region Placeholder="Region" />
+        <RadzenTextBox class=" w-full" @bind-Value=@_model.GrantNumber Placeholder="Grant Number" />
+        <RadzenDropDown class="w-full" @bind-Value=@_model.ServiceType Data=@_servcieTypes Placeholder="Service Type"/>
+        <RadzenDropDown class="w-full" @bind-Value=@_model.Objectif Placeholder="Objectif"/>
+        <RadzenNumeric class="w-full" @bind-Value=@_model.BenefHomme Placeholder="Beneficiaire Homme"/>
+        <RadzenNumeric class="w-full" @bind-Value=@_model.BenefFemme Placeholder="Beneficiaire Femme"/>
         <div class="py-2">
             <RadzenButton class="m-1 px-2" type="submit" IsBusy=@_isBusy Icon="save" Text="Enregistrer" ButtonStyle="ButtonStyle.Secondary" />
          @if (IsNew())
@@ -32,21 +37,18 @@
 
     void Cancel(bool canRefresh = false) => DialogService.Close(canRefresh);
 
-    protected async override Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            //_servcieTypes = await NerTrackerDbContext
-            //    .ServiceTypes.Select(x => x.Name)
-            //    .ToListAsync();
-            StateHasChanged();
-        }
-    }
-
     async Task Save()
     {
         _isBusy = true;
-        await NerTrackerDbContext.AddAsync(Model);
+        Model.DFemme18_349 = _model.BenefFemme;
+        if (IsNew())
+        {
+            await NerTrackerDbContext.AddAsync(Model);
+        }
+        else
+        {
+            NerTrackerDbContext.Update(Model);
+        }
         var result = await NerTrackerDbContext.SaveChangesAsync();
         if (result > 0)
         {
@@ -64,7 +66,7 @@
     async Task ConfirmDelete()
     {
         var result = await DialogService
-        .Confirm("Etes-vous sûre vouloir supprimé? Ceci peut affecter plusieurs courses.", $"Supprimer {Model.Id}", new ConfirmOptions() { OkButtonText = "Oui", CancelButtonText = "Non" });
+        .Confirm("Etes-vous sûre de vouloir supprimé?.", $"Supprimer {Model.Id}", new ConfirmOptions() { OkButtonText = "Oui", CancelButtonText = "Non" });
         if (result.Value == true)
             await Delete();
     }
