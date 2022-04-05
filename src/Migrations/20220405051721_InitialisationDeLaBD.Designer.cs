@@ -12,8 +12,8 @@ using NerTracker.Data;
 namespace NerTracker.Migrations
 {
     [DbContext(typeof(NerTrackerDbContext))]
-    [Migration("20220401051936_AddMoreTables")]
-    partial class AddMoreTables
+    [Migration("20220405051721_InitialisationDeLaBD")]
+    partial class InitialisationDeLaBD
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -44,7 +44,7 @@ namespace NerTracker.Migrations
                     b.Property<int>("DHomme35Plus")
                         .HasColumnType("int");
 
-                    b.Property<string>("GrantNumber")
+                    b.Property<string>("GrantId")
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("IFemme18_349")
@@ -64,7 +64,7 @@ namespace NerTracker.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GrantNumber");
+                    b.HasIndex("GrantId");
 
                     b.ToTable("BenefTrackers");
                 });
@@ -116,23 +116,14 @@ namespace NerTracker.Migrations
 
             modelBuilder.Entity("NerTracker.Entities.GrantData", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
                     b.Property<string>("Number")
-                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("ObjectiveId")
                         .HasColumnType("int");
 
-                    b.Property<int>("RegionId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("RegionId1")
+                    b.Property<string>("RegionId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("ServiceTypeId")
@@ -148,11 +139,11 @@ namespace NerTracker.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("Id");
+                    b.HasKey("Number");
 
                     b.HasIndex("ObjectiveId");
 
-                    b.HasIndex("RegionId1");
+                    b.HasIndex("RegionId");
 
                     b.HasIndex("ServiceTypeId");
 
@@ -215,8 +206,7 @@ namespace NerTracker.Migrations
                 {
                     b.HasOne("NerTracker.Entities.GrantData", "Grant")
                         .WithMany("BenefTrackers")
-                        .HasForeignKey("GrantNumber")
-                        .HasPrincipalKey("Number");
+                        .HasForeignKey("GrantId");
 
                     b.Navigation("Grant");
                 });
@@ -253,7 +243,9 @@ namespace NerTracker.Migrations
 
                     b.HasOne("NerTracker.Entities.Region", "Region")
                         .WithMany()
-                        .HasForeignKey("RegionId1");
+                        .HasForeignKey("RegionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("NerTracker.Entities.ServiceType", "ServiceType")
                         .WithMany()

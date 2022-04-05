@@ -14,14 +14,14 @@
     <div>
         <RadzenDataGrid Count="@_count" LoadData="@LoadData" TItem=@BenefTracker  Data=@_items AllowFiltering="true" 
         AllowColumnResize="true" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" 
-        PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true" ColumnWidth="300px">
+        PagerHorizontalAlign="HorizontalAlign.Left" RowClick=@(e => EditItem(e.Data)) ShowPagingSummary="true" ColumnWidth="300px">
             <Columns>
-                <RadzenDataGridColumn TItem="BenefTracker" Property="Grant.Region.Name" Filterable=@false Title="Region" TextAlign="TextAlign.Center"  />
-                <RadzenDataGridColumn TItem="BenefTracker" Property="GrantId" Filterable=@true Title="Grant Number" TextAlign="TextAlign.Center"  />
-                <RadzenDataGridColumn TItem="BenefTracker" Property="Grant.ServiceType.Name" Filterable=@true Title="Service" TextAlign="TextAlign.Center"  />
-                <RadzenDataGridColumn TItem="BenefTracker" Property="Grant.Objective.Description" Filterable=@true Title="Objectif" TextAlign="TextAlign.Center"  />
-                <RadzenDataGridColumn TItem="BenefTracker" Property="DHomme18_349" Filterable=@true Title="Benef H" TextAlign="TextAlign.Center"  />
-                <RadzenDataGridColumn TItem="BenefTracker" Property="DFemme18_349" Filterable=@true Title="Benef F" TextAlign="TextAlign.Center"  />
+                <RadzenDataGridColumn TItem="BenefTracker" Width="90px" Property="Grant.Region.Name" Filterable=@false Title="Region" TextAlign="TextAlign.Center"  />
+                <RadzenDataGridColumn TItem="BenefTracker" Width="90px" Property="GrantId" Filterable=@true Title="Grant Number" TextAlign="TextAlign.Center"  />
+                <RadzenDataGridColumn TItem="BenefTracker"  Property="Grant.ServiceType.Name" Filterable=@true Title="Service" TextAlign="TextAlign.Center"  />
+                <RadzenDataGridColumn TItem="BenefTracker"  Property="Grant.Objective.Description" Filterable=@true Title="Objectif" TextAlign="TextAlign.Center"  />
+                <RadzenDataGridColumn TItem="BenefTracker" Width="50px" Property="DHomme18_349" Filterable=@true Title="Benef H" TextAlign="TextAlign.Center"  />
+                <RadzenDataGridColumn TItem="BenefTracker" Width="50px" Property="DFemme18_349" Filterable=@true Title="Benef F" TextAlign="TextAlign.Center"  />
             </Columns>
         </RadzenDataGrid>
         
@@ -42,9 +42,9 @@
 
     protected async override Task OnParametersSetAsync()
     {
-        if (Refresh)
+        if(Refresh)
         {
-            //await LoadData(new LoadDataArgs() { Skip = 0, Top = 10 });
+            await RefreshData();
             StateHasChanged();
         }
     }
@@ -59,11 +59,16 @@
     {
         if (firstRender)
         {
-            await Policy.Handle<Exception>()
-                    .WaitAndRetryAsync(5, n => TimeSpan.FromMilliseconds(100 * n), (ex, attempt) => _isBusy = false)
-                    .ExecuteAsync(() => LoadData(new LoadDataArgs() { Skip = 0, Top = 10 }));
+            await RefreshData();
             StateHasChanged();
         }
+    }
+
+    async Task RefreshData()
+    {
+        await Policy.Handle<Exception>()
+                    .WaitAndRetryAsync(5, n => TimeSpan.FromMilliseconds(100 * n), (ex, attempt) => _isBusy = false)
+                    .ExecuteAsync(() => LoadData(new LoadDataArgs() { Skip = 0, Top = 10 }));
     }
 
     async Task OnSearch(string value)

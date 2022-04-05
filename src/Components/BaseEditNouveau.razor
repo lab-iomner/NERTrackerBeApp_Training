@@ -1,5 +1,4 @@
-﻿@using Polly
-<EditForm class="w-full space-y-2 py-2 px-2"  OnValidSubmit=@Save Model=@_model>
+﻿<EditForm class="w-full space-y-2 py-2 px-2"  OnValidSubmit=@Save Model=@_model>
         <DataAnnotationsValidator  />
         <ValidationSummary/>
         <RadzenDropDown class=" w-full" @bind-Value=@_model.SelectedGrantName Change=@(e => OnGrantSelected(e.ToString() ?? string.Empty)) Data=@_grantNames Placeholder="Grant"/>
@@ -30,8 +29,8 @@
         }
         else
         {
-            <RadzenButton class="m-1 px-2" Click=@ConfirmDelete Icon="delete" Text="Supprimer" ButtonStyle="ButtonStyle.Danger" />
+            <RadzenButton class="m-1 px-2"  Icon="delete" Text="Supprimer" ButtonStyle="ButtonStyle.Danger" />
         }
         </div>
 </EditForm>
-<RadzenMediaQuery Query=@("(max-width: 768px)") Change=@(e => _isSmall = e)/>
+<RadzenButton Click=@NaviguerALAcceuil>Retourner à acceuil</RadzenButton>

@@ -120,10 +120,8 @@ namespace NerTracker.Migrations
                     b.Property<int>("ObjectiveId")
                         .HasColumnType("int");
 
-                    b.Property<int>("RegionId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("RegionId1")
+                    b.Property<string>("RegionId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("ServiceTypeId")
@@ -143,7 +141,7 @@ namespace NerTracker.Migrations
 
                     b.HasIndex("ObjectiveId");
 
-                    b.HasIndex("RegionId1");
+                    b.HasIndex("RegionId");
 
                     b.HasIndex("ServiceTypeId");
 
@@ -243,7 +241,9 @@ namespace NerTracker.Migrations
 
                     b.HasOne("NerTracker.Entities.Region", "Region")
                         .WithMany()
-                        .HasForeignKey("RegionId1");
+                        .HasForeignKey("RegionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("NerTracker.Entities.ServiceType", "ServiceType")
                         .WithMany()

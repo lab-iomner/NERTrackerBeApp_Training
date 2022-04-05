@@ -5,17 +5,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace NerTracker.Migrations
 {
-    public partial class AddMoreTables : Migration
+    public partial class InitialisationDeLaBD : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "RegionId",
-                table: "Departements",
-                type: "nvarchar(450)",
-                nullable: false,
-                defaultValue: "");
-
             migrationBuilder.CreateTable(
                 name: "Objectives",
                 columns: table => new
@@ -56,24 +49,40 @@ namespace NerTracker.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "GrantDatas",
+                name: "Departements",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
+                    Designation = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    RegionId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Departements", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Departements_Regions_RegionId",
+                        column: x => x.RegionId,
+                        principalTable: "Regions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "GrantDatas",
+                columns: table => new
+                {
                     Number = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Summary = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ObjectiveId = table.Column<int>(type: "int", nullable: false),
-                    RegionId = table.Column<int>(type: "int", nullable: false),
-                    RegionId1 = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    RegionId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     ServiceTypeId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_GrantDatas", x => x.Id);
-                    table.UniqueConstraint("AK_GrantDatas_Number", x => x.Number);
+                    table.PrimaryKey("PK_GrantDatas", x => x.Number);
                     table.ForeignKey(
                         name: "FK_GrantDatas_Objectives_ObjectiveId",
                         column: x => x.ObjectiveId,
@@ -81,14 +90,35 @@ namespace NerTracker.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_GrantDatas_Regions_RegionId1",
-                        column: x => x.RegionId1,
+                        name: "FK_GrantDatas_Regions_RegionId",
+                        column: x => x.RegionId,
                         principalTable: "Regions",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_GrantDatas_ServiceTypes_ServiceTypeId",
                         column: x => x.ServiceTypeId,
                         principalTable: "ServiceTypes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Communes",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Designation = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DepartementId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Communes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Communes_Departements_DepartementId",
+                        column: x => x.DepartementId,
+                        principalTable: "Departements",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -99,7 +129,7 @@ namespace NerTracker.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    GrantNumber = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    GrantId = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     DHomme18_349 = table.Column<int>(type: "int", nullable: false),
                     DHomme35Plus = table.Column<int>(type: "int", nullable: false),
                     DFemme18_349 = table.Column<int>(type: "int", nullable: false),
@@ -114,11 +144,21 @@ namespace NerTracker.Migrations
                 {
                     table.PrimaryKey("PK_BenefTrackers", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_BenefTrackers_GrantDatas_GrantNumber",
-                        column: x => x.GrantNumber,
+                        name: "FK_BenefTrackers_GrantDatas_GrantId",
+                        column: x => x.GrantId,
                         principalTable: "GrantDatas",
                         principalColumn: "Number");
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BenefTrackers_GrantId",
+                table: "BenefTrackers",
+                column: "GrantId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Communes_DepartementId",
+                table: "Communes",
+                column: "DepartementId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Departements_RegionId",
@@ -126,62 +166,43 @@ namespace NerTracker.Migrations
                 column: "RegionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_BenefTrackers_GrantNumber",
-                table: "BenefTrackers",
-                column: "GrantNumber");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_GrantDatas_ObjectiveId",
                 table: "GrantDatas",
                 column: "ObjectiveId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_GrantDatas_RegionId1",
+                name: "IX_GrantDatas_RegionId",
                 table: "GrantDatas",
-                column: "RegionId1");
+                column: "RegionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_GrantDatas_ServiceTypeId",
                 table: "GrantDatas",
                 column: "ServiceTypeId");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Departements_Regions_RegionId",
-                table: "Departements",
-                column: "RegionId",
-                principalTable: "Regions",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Departements_Regions_RegionId",
-                table: "Departements");
-
             migrationBuilder.DropTable(
                 name: "BenefTrackers");
+
+            migrationBuilder.DropTable(
+                name: "Communes");
 
             migrationBuilder.DropTable(
                 name: "GrantDatas");
 
             migrationBuilder.DropTable(
-                name: "Objectives");
+                name: "Departements");
 
             migrationBuilder.DropTable(
-                name: "Regions");
+                name: "Objectives");
 
             migrationBuilder.DropTable(
                 name: "ServiceTypes");
 
-            migrationBuilder.DropIndex(
-                name: "IX_Departements_RegionId",
-                table: "Departements");
-
-            migrationBuilder.DropColumn(
-                name: "RegionId",
-                table: "Departements");
+            migrationBuilder.DropTable(
+                name: "Regions");
         }
     }
 }

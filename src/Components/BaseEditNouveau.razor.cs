@@ -4,13 +4,12 @@ using NerTracker.Data;
 using NerTracker.Entities;
 using Polly;
 using Radzen;
-using System.ComponentModel.DataAnnotations;
 
 namespace NerTracker.Components
 {
-    public partial class BaseEdit
+    public partial class BaseEditNouveau
     {
-        BaseEditModel _model = new BaseEditModel();
+        BaseEditModel _model = new();
         IEnumerable<ServiceType> _servcieTypes = new List<ServiceType>();
         IEnumerable<Objective> _objectifs = new List<Objective>();
         IEnumerable<Region> _regions = new List<Region>();
@@ -21,19 +20,29 @@ namespace NerTracker.Components
         bool _isBusy = false;
         bool IsNew() => Model is null || Model.Id <= 0;
 
-        [Parameter] public BenefTracker Model { get; set; } = new BenefTracker();
-        [Inject] public NerTrackerDbContext NerTrackerDbContext { get; set; } = null!;
-        [Inject] NotificationService NotificationService { get; set; } = null!;
+        [Inject] 
+        public NerTrackerDbContext NerTrackerDbContext { get; set; } = null!;
         [Inject] DialogService DialogService { get; set; } = null!;
-        [Parameter] public EventCallback<bool> CanRefresh { get; set; }
+
+        [Inject] NavigationManager NavigationManager { get; set; }
 
         void Cancel(bool canRefresh = false) => DialogService.Close(canRefresh);
+        [Parameter] public EventCallback<bool> CanRefresh { get; set; }
+
+        [Parameter]
+        public BenefTracker? Model { get; set; }
+
+        void NaviguerALAcceuil()
+        {
+            NavigationManager.NavigateTo("/");
+        }
+
         protected override void OnParametersSet()
         {
             _model = Model is null || Model.Id <= 0 ? new BaseEditModel() : new BaseEditModel()
             {
-                BenefFemme = Model!.DFemme18_349 ,
-                BenefHomme = Model.DHomme18_349 ,
+                BenefFemme = Model!.DFemme18_349,
+                BenefHomme = Model.DHomme18_349,
                 BenefFemmePlus35 = Model.DFemme35Plus,
                 BenefHommePlus35 = Model.DHomme35Plus,
                 SelectedGrantName = Model.Grant!.Title,
@@ -52,6 +61,27 @@ namespace NerTracker.Components
                     .WaitAndRetryAsync(5, n => TimeSpan.FromMilliseconds(100 * n), (ex, attempt) => _isBusy = false)
                     .ExecuteAsync(() => InitializeData());
                 StateHasChanged();
+            }
+        }
+
+        void OnGrantSelected(string value)
+        {
+            var grant = _grantDatas.FirstOrDefault(x => x.Title == value);
+            if (grant is not null)
+            {
+                _model.SelectedObjectif = grant.Objective!.Description;
+                _model.SelectedServiceType = grant.ServiceType!.Name;
+                _model.SelectedRegion = grant.Region!.Name;
+                _model.GrantNumber = grant.Number;
+                _model.GrantTitle = grant.Title;
+            }
+            else
+            {
+                _model.SelectedObjectif = null;
+                _model.SelectedServiceType = null;
+                _model.SelectedRegion = null!;
+                _model.GrantTitle = null;
+                _model.GrantNumber = null!;
             }
         }
 
@@ -81,23 +111,10 @@ namespace NerTracker.Components
                 .ToListAsync();
         }
 
-        void OnGrantSelected(string value)
-        {
-            var grant = _grantDatas.FirstOrDefault(x => x.Title == value);
-            if(grant is not null)
-            {
-                _model.SelectedObjectif = grant.Objective!.Description;
-                _model.SelectedServiceType = grant.ServiceType!.Name;
-                _model.SelectedRegion = grant.Region!.Name;
-                _model.GrantNumber = grant.Number;
-                _model.GrantTitle = grant.Title;
-            }
-        }
-
         async Task Save()
         {
             _isBusy = true;
-            Model.GrantId = _model.SelectedGrantName == "Autres"
+            Model!.GrantId = _model.SelectedGrantName == "Autres"
                 ? await SaveGrant(_model, NerTrackerDbContext, _objectifs, _servcieTypes, _regions)
                 : _grantDatas.First(x => x.Title == _model.SelectedGrantName).Number;
             Model.DFemme18_349 = _model.BenefFemme ?? 0;
@@ -156,7 +173,7 @@ namespace NerTracker.Components
 
             static string SaveRegion(string region, NerTrackerDbContext dbContext)
             {
-                var savedItem = dbContext.Regions.Add(new Region() { Id = region.Substring(0,2).ToUpper(), Name = region});
+                var savedItem = dbContext.Regions.Add(new Region() { Id = region.Substring(0, 2).ToUpper(), Name = region });
                 dbContext.SaveChanges();
                 return savedItem.Entity.Id;
             }
@@ -169,61 +186,5 @@ namespace NerTracker.Components
             }
         }
 
-        async Task ConfirmDelete()
-        {
-            var result = await DialogService
-            .Confirm("Etes-vous sûre de vouloir supprimé?.", $"Supprimer {Model.Id}", new ConfirmOptions() { OkButtonText = "Oui", CancelButtonText = "Non" });
-            if (result.Value == true)
-                await Delete();
-        }
-
-        async Task Delete()
-        {
-            if (IsNew())
-                return;
-            _isBusy = true;
-
-            NerTrackerDbContext.Remove(Model);
-            var isDeleted = await NerTrackerDbContext.SaveChangesAsync();
-            if (!_isSmall && isDeleted > 0)
-            {
-                await CanRefresh.InvokeAsync(isDeleted > 0);
-                Model = new BenefTracker();
-            }
-            else
-                Cancel(isDeleted > 0);
-            _isBusy = false;
-        }
-    }
-
-    public class BaseEditModel
-    {
-
-        [Required(ErrorMessage = "Veuillez spécifier une region")]
-        public string SelectedRegion { get; set; } = null!;
-
-        [Required(ErrorMessage = "Veuillez choisir un grant")]
-        public string? SelectedGrantName { get; set; } 
-
-        [Required(ErrorMessage = "Veuillez spécifier le numéro du grant")]
-        public string GrantNumber { get; set; } = null!;
-        [Required(ErrorMessage = "Veuillez spécifier le titre du grant")]
-        public string GrantTitle { get; set; } = null!;
-        public string? GrantSummary { get; set; }
-
-        public string? GrantStatus { get; set; }
-
-        [Required(ErrorMessage = "Veuillez spécifier le type de service")]
-        public string SelectedServiceType { get; set; } = null!;
-
-        [Required(ErrorMessage = "Veuillez spécifier l'objectif")]
-        public string SelectedObjectif { get; set; } = null!;
-
-        public int? BenefHomme { get; set; }
-
-        public int? BenefHommePlus35 { get; set; }
-
-        public int? BenefFemme { get; set; }
-        public int? BenefFemmePlus35 { get; set; }
     }
 }

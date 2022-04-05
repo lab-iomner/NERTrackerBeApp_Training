@@ -13,7 +13,7 @@
         public int ObjectiveId { get; set; }
         public Objective? Objective { get; set; }
 
-        public int RegionId { get; set; }
+        public string RegionId { get; set; } = null!;
         public Region? Region { get; set; }
 
         public int ServiceTypeId { get; set; }
