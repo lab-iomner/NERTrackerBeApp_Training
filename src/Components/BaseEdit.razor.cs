@@ -39,7 +39,9 @@ namespace NerTracker.Components
                 SelectedGrantName = Model.Grant!.Title,
                 SelectedObjectif = Model.Grant!.Objective!.Description,
                 SelectedRegion = Model.Grant!.Region!.Name,
-                SelectedServiceType = Model.Grant!.ServiceType!.Name
+                SelectedServiceType = Model.Grant!.ServiceType!.Name,
+                GrantNumber = Model.Grant!.Number,
+                GrantTitle = Model.Grant!.Title
             };
             Model ??= new BenefTracker();
         }
@@ -48,8 +50,8 @@ namespace NerTracker.Components
         {
             if (firstRender)
             {
-                await Policy.Handle<Exception>()
-                    .WaitAndRetryAsync(5, n => TimeSpan.FromMilliseconds(100 * n), (ex, attempt) => _isBusy = false)
+                await Policy.Handle<InvalidOperationException>()
+                    .WaitAndRetryAsync(20, n => TimeSpan.FromMilliseconds(100 * n), (ex, attempt) => _isBusy = false)
                     .ExecuteAsync(() => InitializeData());
                 StateHasChanged();
             }

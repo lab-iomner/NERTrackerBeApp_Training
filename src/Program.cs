@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.EntityFrameworkCore;
 using NerTracker.Data;
 using Radzen;
@@ -10,13 +8,27 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<NerTrackerDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor();
+builder.Services.AddServerSideBlazor(options => options.DetailedErrors = true);
 
 builder.Services.AddScoped<DialogService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<TooltipService>();
 
 var app = builder.Build();
+using var serviceScope = app.Services.CreateAsyncScope();
+var db = serviceScope.ServiceProvider.GetRequiredService<NerTrackerDbContext>();
+if (db is not null)
+{
+    try
+    {
+        if (db.Database.GetPendingMigrations().Count() > 0)
+            db.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine(ex.Message);
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

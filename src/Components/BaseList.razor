@@ -66,8 +66,8 @@
 
     async Task RefreshData()
     {
-        await Policy.Handle<Exception>()
-                    .WaitAndRetryAsync(5, n => TimeSpan.FromMilliseconds(100 * n), (ex, attempt) => _isBusy = false)
+        await Policy.Handle<InvalidOperationException>()
+                    .WaitAndRetryAsync(25, n => TimeSpan.FromMilliseconds(100 * n), (ex, attempt) => _isBusy = false)
                     .ExecuteAsync(() => LoadData(new LoadDataArgs() { Skip = 0, Top = 10 }));
     }
 
