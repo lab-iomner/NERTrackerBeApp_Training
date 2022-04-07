@@ -1,9 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NerTracker.Entities;
 
 namespace NerTracker.Data
 {
-    public class NerTrackerDbContext:DbContext
+    public class NerTrackerDbContext:IdentityDbContext<NerTrackerUser>
     {
         public NerTrackerDbContext(DbContextOptions<NerTrackerDbContext> options)
              : base(options)
@@ -37,6 +38,8 @@ namespace NerTracker.Data
             //    .WithMany(b => b.BenefTrackers)
             //    .HasForeignKey(g => g.GrantNumber)
             //    .HasPrincipalKey(b => b.Number);
+
+            modelBuilder.ApplyConfigurationsFromAssembly(typeof(Program).Assembly);
         }
     }
 }
